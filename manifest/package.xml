@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Contact</members>
+        <members>Job_Posting__c</members>
+        <members>Job_Application__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>BenchNotificationBatch</members>
+        <members>BenchManagementService</members>
+        <members>ContactBenchHandler</members>
+        <members>BenchAdminUtility</members>
+        <members>BenchManagementServiceTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>JobApplicationTrigger</members>
+        <members>ContactBenchTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>Admin_Setup_Manual_Bench_Sync</members>
+        <name>Flow</name>
+    </types>
+    <version>60.0</version>
+</Package>
