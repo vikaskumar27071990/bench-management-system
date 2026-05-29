@@ -5,9 +5,20 @@ global class BenchNotificationBatch implements Database.Batchable<sObject>, Sche
         Database.executeBatch(new BenchNotificationBatch(), 200);
     }
     
-    // Step 2: Query Setup (Find unconfirmed bench resources)
+    // Step 2: Query Setup with Enterprise Kill Switch
     global Database.QueryLocator start(Database.BatchableContext bc) {
-        // Sirf wahi contacts jinki bench date set hai aur confirmed nahi kiya
+        
+        // ARCHITECT LOGIC: Check the Kill Switch (0 SOQL consumed)
+        Bench_System_Config__c config = Bench_System_Config__c.getOrgDefaults();
+        
+        // Agar config false hai (Admin ne UI se pause kar diya hai)
+        if (config != null && config.Is_Automation_Active__c == false) {
+            System.debug('KILL SWITCH ACTIVATED: Bench Automation is paused.');
+            // Return empty query so the execute method never runs, saving CPU time
+            return Database.getQueryLocator('SELECT Id FROM Contact WHERE Id = null');
+        }
+
+        // Agar switch ON hai, toh normal execution (Sirf wahi contacts jinki bench date set hai aur confirmed nahi kiya)
         String query = 'SELECT Id, Name, Email, Expected_Bench_Date__c FROM Contact ' +
                        'WHERE Expected_Bench_Date__c != null ' +
                        'AND Bench_Status_Confirmed__c = false';
@@ -34,15 +45,25 @@ global class BenchNotificationBatch implements Database.Batchable<sObject>, Sche
                 emailsToSend.add(buildEmail(emp, 'Reminder'));
             }
         }
-        
-        // Step 4: Bulk Email Dispatch
+            
+        // Step 4: Bulk Email Dispatch with Limit Exception Handling
         if (!emailsToSend.isEmpty()) {
-            Messaging.sendEmail(emailsToSend);
+            try {
+                // System check karega ki limit bachi hai ya nahi
+                Messaging.sendEmail(emailsToSend);
+                System.debug('Emails sent successfully.');
+            } catch (EmailException e) {
+                // Agar limit hit ho gayi toh Flow/Batch fatega nahi, bas log ho jayega
+                System.debug('Email Limit Exceeded. Error: ' + e.getMessage());
+            } catch (Exception e) {
+                System.debug('Critical Error during email dispatch: ' + e.getMessage());
+            }
         }
     }
     
     global void finish(Database.BatchableContext bc) {
         // Optional: Audit log creation can happen here
+        System.debug('Bench Notification Batch Finished.');
     }
     
     // Step 5: Helper method to construct emails
